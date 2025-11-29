@@ -121,7 +121,7 @@ const Home: React.FC = () => {
       {/* Tech Marquee */}
       <section className="w-full overflow-hidden border-y border-white/5 bg-slate-950/50 py-10">
         <div className="max-w-7xl mx-auto px-4 text-center mb-8">
-          <span className="text-sm text-slate-500 font-medium">مورد اعتماد تکنولوژی‌های برتر جهان</span>
+          <span className="text-sm text-slate-500 font-medium">تکنولوژی‌های برتر جهان مورد استفاده نکسورا</span>
         </div>
         <div className="flex justify-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 flex-wrap px-4">
           <span className="text-2xl font-bold text-white">OpenAI</span>

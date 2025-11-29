@@ -5,7 +5,7 @@ import Button from './Button';
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ text: string; isBot: boolean }[]>([
-    { text: "سلام! من ایجنت هوشمند نکسورا هستم. می‌خوای نمونه‌کارهای مربوط به صنعت خودت رو نشونت بدم؟", isBot: true }
+    { text: "سلام! من ایجنت هوشمند نکسورا هستم. من اینجام تا به شما در بهره‌وری و خودکارسازی کسب‌وکارتان کمک کنم. چگونه می‌توانم به شما کمک کنم؟", isBot: true }
   ]);
   const [input, setInput] = useState("");
 
@@ -93,7 +93,7 @@ const ChatWidget: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="rounded-full w-14 h-14 shadow-2xl shadow-primary/40 flex items-center justify-center p-0"
       >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        {isOpen ? <X size={24} /> : <MessageSquare size={32} />}
       </Button>
     </div>
   );
