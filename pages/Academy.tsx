@@ -4,7 +4,6 @@ import Button from '../components/Button';
 
 const Academy: React.FC = () => {
   const [email, setEmail] = useState('');
-  // این فیلد برای هانی‌پات است و باید خالی بماند (برای فریب ربات‌ها)
   const [honeyPot, setHoneyPot] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -12,29 +11,26 @@ const Academy: React.FC = () => {
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // --- لایه امنیتی ۱: هانی‌پات (Honeypot) ---
-    // اگر فیلد مخفی پر شده باشد، یعنی ربات است!
+    // Security Check: Honeypot for bots
     if (honeyPot) {
       console.log("Bot detected!");
-      // وانمود می‌کنیم موفقیت‌آمیز بوده تا ربات متوجه نشود و تلاش مجدد نکند
-      setStatus('success');
+      setStatus('success'); // Fake success
       return;
     }
 
-    // اعتبارسنجی ایمیل
     if (!email || !email.includes('@')) {
       setStatus('error');
       setErrorMessage('لطفاً یک ایمیل معتبر وارد کنید.');
       return;
     }
 
-    // دریافت لینک وب‌هوک از فایل .env
+    // Use CORS Proxy + Webhook URL from .env
     const webhookUrl = import.meta.env.VITE_NEWSLETTER_WEBHOOK;
 
     if (!webhookUrl) {
-      console.error('Webhook URL is not defined in .env file');
+      console.error('Webhook URL is not defined');
       setStatus('error');
-      setErrorMessage('خطای تنظیمات سیستم. لطفاً با پشتیبانی تماس بگیرید.');
+      setErrorMessage('خطای تنظیمات سیستم.');
       return;
     }
 
@@ -47,15 +43,17 @@ const Academy: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          type: 'newsletter', // <--- شناسه مهم برای تفکیک در n8n
           email: email,
           source: 'nexora_website',
+          page: 'academy',
           date: new Date().toISOString()
         }),
       });
 
       if (response.ok) {
         setStatus('success');
-        setEmail(''); // پاک کردن فرم پس از موفقیت
+        setEmail('');
       } else {
         throw new Error('Failed to subscribe');
       }
@@ -139,8 +137,7 @@ const Academy: React.FC = () => {
           
           <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative" onSubmit={handleSubscribe}>
             
-            {/* --- Honeypot Field (مخفی برای کاربران، قابل دیدن برای ربات‌ها) --- */}
-            {/* این فیلد مخفی است. کاربر واقعی آن را نمی‌بیند پس خالی می‌ماند. ربات‌ها معمولاً پر می‌کنند. */}
+            {/* Honeypot Field */}
             <div className="hidden opacity-0 w-0 h-0 overflow-hidden pointer-events-none">
               <label htmlFor="user_address_verify">Address Verification</label>
               <input 
@@ -153,7 +150,6 @@ const Academy: React.FC = () => {
                 onChange={(e) => setHoneyPot(e.target.value)}
               />
             </div>
-            {/* ----------------------------------------------------------- */}
 
             <input 
               type="email" 
