@@ -26,6 +26,9 @@ const ThreeLogo: React.FC = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     // تنظیم رنگ پس‌زمینه به شفاف کامل
     renderer.setClearColor(0x000000, 0);
+    // تنظیمات تون مپینگ برای افزایش روشنایی کلی
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    renderer.toneMappingExposure = 2.5; // افزایش مقدار برای روشنایی بیشتر
     
     container.appendChild(renderer.domElement);
 
@@ -38,20 +41,20 @@ const ThreeLogo: React.FC = () => {
     controls.enableZoom = false;
     controls.enablePan = false;
 
-    // --- نورپردازی ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // --- نورپردازی (افزایش شدت نورها) ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // افزایش شدت نور محیطی
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.5); // افزایش شدت نور جهت‌دار
     dirLight.position.set(10, 10, 10);
     scene.add(dirLight);
 
     // نورهای نقطه‌ای برای ایجاد حجم و سایه روی لوگو
-    const blueLight = new THREE.PointLight(0x0055ff, 1, 20);
+    const blueLight = new THREE.PointLight(0x0055ff, 3, 30); // افزایش شدت و برد نور
     blueLight.position.set(-5, 5, 5);
     scene.add(blueLight);
 
-    const cyanLight = new THREE.PointLight(0x00ffff, 1, 20);
+    const cyanLight = new THREE.PointLight(0x00ffff, 3, 30); // افزایش شدت و برد نور
     cyanLight.position.set(5, -5, 5);
     scene.add(cyanLight);
 
