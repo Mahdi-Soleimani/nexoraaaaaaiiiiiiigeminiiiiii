@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Cpu } from 'lucide-react';
 import Button from './Button';
 import { NavItem } from '../types';
+import ThreeLogo from './ThreeLogo';
 
 const navItems: NavItem[] = [
   { label: 'خانه', path: '/' },
@@ -27,8 +28,8 @@ const Navbar: React.FC = () => {
           
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
-              <Cpu size={24} />
+            <div className="flex items-center justify-center">
+               <ThreeLogo /> 
             </div>
             <span className="font-bold text-xl tracking-tight text-white group-hover:text-cyan-400 transition-colors">
               نکسورا
