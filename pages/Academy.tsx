@@ -1,8 +1,71 @@
-import React from 'react';
-import { PlayCircle, FileText, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { PlayCircle, FileText, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Button from '../components/Button';
 
 const Academy: React.FC = () => {
+  const [email, setEmail] = useState('');
+  // این فیلد برای هانی‌پات است و باید خالی بماند (برای فریب ربات‌ها)
+  const [honeyPot, setHoneyPot] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // --- لایه امنیتی ۱: هانی‌پات (Honeypot) ---
+    // اگر فیلد مخفی پر شده باشد، یعنی ربات است!
+    if (honeyPot) {
+      console.log("Bot detected!");
+      // وانمود می‌کنیم موفقیت‌آمیز بوده تا ربات متوجه نشود و تلاش مجدد نکند
+      setStatus('success');
+      return;
+    }
+
+    // اعتبارسنجی ایمیل
+    if (!email || !email.includes('@')) {
+      setStatus('error');
+      setErrorMessage('لطفاً یک ایمیل معتبر وارد کنید.');
+      return;
+    }
+
+    // دریافت لینک وب‌هوک از فایل .env
+    const webhookUrl = import.meta.env.VITE_NEWSLETTER_WEBHOOK;
+
+    if (!webhookUrl) {
+      console.error('Webhook URL is not defined in .env file');
+      setStatus('error');
+      setErrorMessage('خطای تنظیمات سیستم. لطفاً با پشتیبانی تماس بگیرید.');
+      return;
+    }
+
+    setStatus('loading');
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          source: 'nexora_website',
+          date: new Date().toISOString()
+        }),
+      });
+
+      if (response.ok) {
+        setStatus('success');
+        setEmail(''); // پاک کردن فرم پس از موفقیت
+      } else {
+        throw new Error('Failed to subscribe');
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      setStatus('error');
+      setErrorMessage('مشکلی در برقراری ارتباط پیش آمد. لطفاً دوباره تلاش کنید.');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
       
@@ -73,16 +136,63 @@ const Academy: React.FC = () => {
           <p className="text-white/80 mb-8">
             هفته‌ای یک ایمیل، حاوی جدیدترین اخبار و آموزش‌های کاربردی هوش مصنوعی. بدون اسپم.
           </p>
-          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+          
+          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative" onSubmit={handleSubscribe}>
+            
+            {/* --- Honeypot Field (مخفی برای کاربران، قابل دیدن برای ربات‌ها) --- */}
+            {/* این فیلد مخفی است. کاربر واقعی آن را نمی‌بیند پس خالی می‌ماند. ربات‌ها معمولاً پر می‌کنند. */}
+            <div className="hidden opacity-0 w-0 h-0 overflow-hidden pointer-events-none">
+              <label htmlFor="user_address_verify">Address Verification</label>
+              <input 
+                type="text" 
+                id="user_address_verify" 
+                name="user_address_verify" 
+                tabIndex={-1} 
+                autoComplete="off"
+                value={honeyPot}
+                onChange={(e) => setHoneyPot(e.target.value)}
+              />
+            </div>
+            {/* ----------------------------------------------------------- */}
+
             <input 
               type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="ایمیل خود را وارد کنید" 
-              className="flex-grow bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/50 rounded-lg px-4 py-3 focus:outline-none focus:bg-white/20 transition-all"
+              disabled={status === 'loading' || status === 'success'}
+              className="flex-grow bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/50 rounded-lg px-4 py-3 focus:outline-none focus:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <button className="bg-white text-primary font-bold px-6 py-3 rounded-lg hover:bg-slate-100 transition-colors">
-              عضویت
+            <button 
+              type="submit"
+              disabled={status === 'loading' || status === 'success'}
+              className="bg-white text-primary font-bold px-6 py-3 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+            >
+              {status === 'loading' ? (
+                <Loader2 className="animate-spin w-5 h-5" />
+              ) : status === 'success' ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                'عضویت'
+              )}
             </button>
           </form>
+
+          {/* Feedback Messages */}
+          {status === 'success' && (
+            <div className="mt-4 text-green-300 bg-green-500/20 py-2 px-4 rounded-lg inline-flex items-center gap-2 text-sm animate-in fade-in slide-in-from-bottom-2">
+              <CheckCircle size={16} />
+              ایمیل شما با موفقیت ثبت شد. به جمع ما خوش آمدید!
+            </div>
+          )}
+          
+          {status === 'error' && (
+            <div className="mt-4 text-red-200 bg-red-500/20 py-2 px-4 rounded-lg inline-flex items-center gap-2 text-sm animate-in fade-in slide-in-from-bottom-2">
+              <AlertCircle size={16} />
+              {errorMessage}
+            </div>
+          )}
+
         </div>
       </section>
     </div>
