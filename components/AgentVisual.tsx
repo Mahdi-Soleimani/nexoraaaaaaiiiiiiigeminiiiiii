@@ -16,20 +16,19 @@ const AgentVisual: React.FC = () => {
     if (!mountRef.current) return;
     const container = mountRef.current;
 
-    // پاکسازی کامل برای جلوگیری از تکرار
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
 
     // --- 1. Scene Setup ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000510, 0.035); // مه آبی تیره برای عمق
+    scene.fog = new THREE.FogExp2(0x00020a, 0.03); // پس‌زمینه بسیار تیره و عمیق
 
     const width = container.clientWidth;
     const height = container.clientHeight;
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
-    camera.position.set(0, 2, 14);
+    camera.position.set(0, 0, 16);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -39,160 +38,148 @@ const AgentVisual: React.FC = () => {
     container.appendChild(renderer.domElement);
 
     // --- 2. Lighting ---
-    const ambientLight = new THREE.AmbientLight(0x000000);
+    const ambientLight = new THREE.AmbientLight(0x111111);
     scene.add(ambientLight);
 
-    const blueLight = new THREE.PointLight(0x0055ff, 3, 30);
-    blueLight.position.set(10, 10, 10);
-    scene.add(blueLight);
+    const pointLight = new THREE.PointLight(0x00ffff, 2, 20);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
 
-    const cyanLight = new THREE.PointLight(0x00ffff, 2, 25);
-    cyanLight.position.set(-10, -5, 5);
-    scene.add(cyanLight);
+    // --- 3. Creating n8n Style Nodes (Helpers) ---
+    
+    // متریال نودها (شیشه‌ای و تکنولوژیک)
+    const nodeMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x001f5c, // سرمه‌ای تیره
+        emissive: 0x0033aa,
+        emissiveIntensity: 0.2,
+        metalness: 0.8,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.9,
+    });
 
-    // --- 3. The Future Grid (Moving Floor) ---
-    // این گرید حرکت می‌کند تا حس آینده و پیشرفت را بدهد
-    const gridSize = 60;
-    const gridDivisions = 60;
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x0033aa, 0x001133);
-    gridHelper.position.y = -6;
+    const borderMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 });
+
+    // تابع ساخت نود (شبیه کارت‌های n8n)
+    const createNode = (x: number, y: number, z: number, type: 'trigger' | 'action') => {
+        const group = new THREE.Group();
+        group.position.set(x, y, z);
+
+        // بدنه اصلی نود
+        const geometry = type === 'trigger' 
+            ? new THREE.CylinderGeometry(0.8, 0.8, 0.3, 32) // تریگر دایره‌ای است
+            : new THREE.BoxGeometry(1.5, 0.8, 0.3); // اکشن مستطیلی است
+
+        if (type === 'trigger') geometry.rotateX(Math.PI / 2); // چرخش سیلندر
+
+        const mesh = new THREE.Mesh(geometry, nodeMaterial);
+        group.add(mesh);
+
+        // قاب دور نود (Border)
+        const edges = new THREE.EdgesGeometry(geometry);
+        const line = new THREE.LineSegments(edges, borderMaterial);
+        group.add(line);
+
+        // آیکون وسط (ساده‌سازی شده با یک شکل هندسی کوچک)
+        const iconGeo = type === 'trigger' 
+            ? new THREE.ConeGeometry(0.2, 0.4, 3) // مثلث برای تریگر
+            : new THREE.BoxGeometry(0.3, 0.3, 0.3); // مربع برای اکشن
+        const iconMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const icon = new THREE.Mesh(iconGeo, iconMat);
+        icon.position.z = 0.2;
+        if (type === 'trigger') icon.rotation.z = -Math.PI / 2;
+        group.add(icon);
+
+        scene.add(group);
+        return group;
+    };
+
+    // --- 4. Building the Workflow Graph ---
+    const nodes: THREE.Group[] = [];
+    
+    // Trigger Node (Start)
+    const startNode = createNode(-5, 0, 0, 'trigger');
+    nodes.push(startNode);
+
+    // Layer 1
+    const action1 = createNode(-2, 1.5, 0, 'action');
+    const action2 = createNode(-2, -1.5, 0, 'action');
+    nodes.push(action1, action2);
+
+    // Layer 2
+    const action3 = createNode(2, 2.5, 0, 'action');
+    const action4 = createNode(2, 0, 0, 'action');
+    const action5 = createNode(2, -2.5, 0, 'action');
+    nodes.push(action3, action4, action5);
+
+    // Layer 3 (Final)
+    const endNode = createNode(5.5, 0, 0, 'action');
+    nodes.push(endNode);
+
+
+    // --- 5. Curved Connections (Bezier Curves) ---
+    // تابع ساخت منحنی بین دو نقطه
+    const curves: THREE.CubicBezierCurve3[] = [];
+    const connectionMaterial = new THREE.LineBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.3 });
+
+    const connectNodes = (n1: THREE.Group, n2: THREE.Group) => {
+        const start = n1.position.clone();
+        const end = n2.position.clone();
+        
+        // نقاط کنترل برای ایجاد انحنای نرم (مثل n8n)
+        const dist = start.distanceTo(end);
+        const control1 = start.clone().add(new THREE.Vector3(dist * 0.5, 0, 0));
+        const control2 = end.clone().add(new THREE.Vector3(-dist * 0.5, 0, 0));
+
+        const curve = new THREE.CubicBezierCurve3(start, control1, control2, end);
+        curves.push(curve);
+
+        const points = curve.getPoints(50);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, connectionMaterial);
+        scene.add(line);
+    };
+
+    // تعریف اتصالات ورک‌فلو
+    connectNodes(startNode, action1);
+    connectNodes(startNode, action2);
+    connectNodes(action1, action3);
+    connectNodes(action1, action4);
+    connectNodes(action2, action5);
+    connectNodes(action3, endNode);
+    connectNodes(action4, endNode);
+    connectNodes(action5, endNode);
+
+    // --- 6. Data Packets Animation ---
+    // بسته‌های نوری که روی منحنی‌ها حرکت می‌کنند
+    const packets: { mesh: THREE.Mesh, curveIdx: number, progress: number, speed: number }[] = [];
+    const packetGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    const packetMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // فیروزه‌ای روشن
+
+    // ایجاد ۲۰ بسته داده
+    for (let i = 0; i < 20; i++) {
+        const mesh = new THREE.Mesh(packetGeo, packetMat);
+        scene.add(mesh);
+        packets.push({
+            mesh,
+            curveIdx: Math.floor(Math.random() * curves.length),
+            progress: Math.random(),
+            speed: 0.005 + Math.random() * 0.01
+        });
+    }
+
+    // --- 7. Background Grid (Future Floor) ---
+    const gridHelper = new THREE.GridHelper(60, 60, 0x001f5c, 0x000a1f);
+    gridHelper.position.y = -4;
     gridHelper.material.transparent = true;
-    gridHelper.material.opacity = 0.15;
+    gridHelper.material.opacity = 0.2;
     scene.add(gridHelper);
 
-    // --- 4. The AI Core (Neural Processing) ---
-    const coreGroup = new THREE.Group();
-    scene.add(coreGroup);
-
-    // پوسته بیرونی (Geometric Shell)
-    const shellGeo = new THREE.IcosahedronGeometry(2, 1);
-    const shellMat = new THREE.MeshPhysicalMaterial({
-      color: 0x001f5c,
-      emissive: 0x0033aa,
-      emissiveIntensity: 0.2,
-      roughness: 0,
-      metalness: 0.8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.3
-    });
-    const shell = new THREE.Mesh(shellGeo, shellMat);
-    coreGroup.add(shell);
-
-    // مغز داخلی (Neural Cloud)
-    const brainGeo = new THREE.BufferGeometry();
-    const brainParticleCount = 800;
-    const brainPositions = new Float32Array(brainParticleCount * 3);
-    for(let i=0; i<brainParticleCount; i++) {
-        const r = 1.2 * Math.cbrt(Math.random()); // توزیع یکنواخت داخل کره
-        const theta = Math.random() * 2 * Math.PI;
-        const phi = Math.acos(2 * Math.random() - 1);
-        brainPositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
-        brainPositions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-        brainPositions[i*3+2] = r * Math.cos(phi);
-    }
-    brainGeo.setAttribute('position', new THREE.BufferAttribute(brainPositions, 3));
-    const brainMat = new THREE.PointsMaterial({
-        color: 0x00ffff,
-        size: 0.05,
-        transparent: true,
-        opacity: 0.8,
-        blending: THREE.AdditiveBlending
-    });
-    const brain = new THREE.Points(brainGeo, brainMat);
-    coreGroup.add(brain);
-
-    // --- 5. The Workflow Network (n8n Nodes) ---
-    const nodesGroup = new THREE.Group();
-    scene.add(nodesGroup);
-
-    const nodeGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4); // نودهای مکعبی شبیه ماژول
-    const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff }); // رنگ روشن‌تر
-    
-    const nodes: THREE.Mesh[] = [];
-    const nodeCount = 12;
-    const radius = 4.5;
-
-    // ایجاد نودها دور کره
-    for (let i = 0; i < nodeCount; i++) {
-        const mesh = new THREE.Mesh(nodeGeometry, nodeMaterial);
-        
-        // الگوریتم Fibonacci Sphere برای توزیع منظم‌تر
-        const phi = Math.acos(1 - 2 * (i + 0.5) / nodeCount);
-        const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
-        
-        mesh.position.setFromSphericalCoords(radius, phi, theta);
-        mesh.lookAt(0, 0, 0);
-        
-        nodes.push(mesh);
-        nodesGroup.add(mesh);
-    }
-
-    // اتصالات شبکه
-    const connections: { start: THREE.Vector3, end: THREE.Vector3 }[] = [];
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0033aa, transparent: true, opacity: 0.2 });
-    const linesGeometry = new THREE.BufferGeometry();
-    const linePositions: number[] = [];
-
-    nodes.forEach((node, i) => {
-        // اتصال به هسته (AI controlled)
-        linePositions.push(node.position.x, node.position.y, node.position.z);
-        linePositions.push(0, 0, 0);
-        connections.push({ start: node.position, end: new THREE.Vector3(0,0,0) });
-
-        // اتصال به نودهای همسایه (Automation Flow)
-        nodes.forEach((otherNode, j) => {
-            if (i !== j) {
-                const dist = node.position.distanceTo(otherNode.position);
-                if (dist < 4.0) { // فقط نودهای نزدیک
-                    linePositions.push(node.position.x, node.position.y, node.position.z);
-                    linePositions.push(otherNode.position.x, otherNode.position.y, otherNode.position.z);
-                    connections.push({ start: node.position, end: otherNode.position });
-                }
-            }
-        });
-    });
-    linesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-    const networkLines = new THREE.LineSegments(linesGeometry, lineMaterial);
-    nodesGroup.add(networkLines);
-
-    // --- 6. Data Packets (Automation Animation) ---
-    // شبیه‌سازی بسته‌های داده که بین نودها حرکت می‌کنند
-    const packets: THREE.Mesh[] = [];
-    const packetGeo = new THREE.SphereGeometry(0.1, 8, 8);
-    const packetMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const packetSpeed = 0.05;
-    
-    // ایجاد ۱۰ بسته داده
-    for(let i=0; i<15; i++) {
-        const packet = new THREE.Mesh(packetGeo, packetMat);
-        packet.userData = { 
-            pathIndex: Math.floor(Math.random() * connections.length), 
-            progress: Math.random() 
-        };
-        packets.push(packet);
-        nodesGroup.add(packet);
-    }
-
-    // --- 7. Orbital Rings (Futuristic Tech) ---
-    const ringGeo = new THREE.TorusGeometry(6, 0.02, 16, 100);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.15 });
-    
-    const ring1 = new THREE.Mesh(ringGeo, ringMat);
-    ring1.rotation.x = Math.PI / 2; // افقی
-    scene.add(ring1);
-
-    const ring2 = new THREE.Mesh(ringGeo, ringMat);
-    ring2.rotation.x = Math.PI / 1.8;
-    ring2.rotation.y = Math.PI / 6;
-    ring2.scale.set(1.1, 1.1, 1.1);
-    scene.add(ring2);
-
-    // --- 8. Post Processing (Neon Glow) ---
+    // --- 8. Post Processing (Glow) ---
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0;
-    bloomPass.strength = 1.5; // درخشش نئونی قوی
+    bloomPass.strength = 1.2;
     bloomPass.radius = 0.5;
 
     const composer = new EffectComposer(renderer);
@@ -201,47 +188,42 @@ const AgentVisual: React.FC = () => {
 
     // --- 9. Animation Loop ---
     let time = 0;
+    // گروه کل گراف برای چرخش ملایم
+    const graphGroup = new THREE.Group();
+    // اضافه کردن همه نودها به یک گروه والد (برای چرخش راحت‌تر در آینده اگر نیاز شد)
+    // فعلاً همه چیز در صحنه اصلی است، اما نودها را کمی شناور می‌کنیم
+
     const animate = () => {
         requestAnimationFrame(animate);
         time += 0.01;
 
-        // 1. چرخش هسته و مغز
-        shell.rotation.y += 0.002;
-        shell.rotation.z -= 0.001;
-        brain.rotation.y -= 0.005; // چرخش معکوس مغز برای پویایی
-
-        // 2. چرخش کل شبکه
-        nodesGroup.rotation.y += 0.001;
-
-        // 3. انیمیشن گرید (حرکت به سمت آینده)
-        gridHelper.position.z = (time * 2) % (gridSize / gridDivisions); 
-
-        // 4. انیمیشن حلقه‌ها
-        ring1.rotation.x = Math.PI / 2 + Math.sin(time * 0.5) * 0.1;
-        ring2.rotation.y += 0.002;
-
-        // 5. حرکت بسته‌های داده (Data Packets)
-        packets.forEach(packet => {
-            const data = packet.userData;
-            data.progress += packetSpeed;
-            if (data.progress >= 1) {
-                data.progress = 0;
-                data.pathIndex = Math.floor(Math.random() * connections.length); // تغییر مسیر تصادفی
-            }
-            
-            const connection = connections[data.pathIndex];
-            packet.position.lerpVectors(connection.start, connection.end, data.progress);
+        // انیمیشن شناور بودن نودها (Floating Effect)
+        nodes.forEach((node, idx) => {
+            node.position.y += Math.sin(time * 2 + idx) * 0.002;
         });
 
-        // 6. افکت نبض (Heartbeat of AI)
-        const pulse = 1 + Math.sin(time * 3) * 0.05;
-        shell.scale.set(pulse, pulse, pulse);
+        // حرکت بسته‌های داده روی منحنی‌ها
+        packets.forEach(packet => {
+            packet.progress += packet.speed;
+            if (packet.progress >= 1) {
+                packet.progress = 0;
+                // تعویض مسیر تصادفی
+                packet.curveIdx = Math.floor(Math.random() * curves.length);
+            }
+            
+            const curve = curves[packet.curveIdx];
+            const point = curve.getPoint(packet.progress);
+            packet.mesh.position.copy(point);
+        });
+
+        // حرکت گرید کف
+        gridHelper.position.z = (time) % 1; 
+        gridHelper.rotation.y = Math.sin(time * 0.1) * 0.05; // چرخش بسیار ملایم کف
 
         composer.render();
     };
     animate();
 
-    // --- Resize Handler ---
     const handleResize = () => {
         if (!container) return;
         const newWidth = container.clientWidth;
@@ -255,22 +237,16 @@ const AgentVisual: React.FC = () => {
 
     return () => {
         window.removeEventListener('resize', handleResize);
-        // پاکسازی کامل
         if (container && renderer.domElement) container.removeChild(renderer.domElement);
         renderer.dispose();
         composer.dispose();
-        shellGeo.dispose();
-        shellMat.dispose();
-        brainGeo.dispose();
-        brainMat.dispose();
-        nodeGeometry.dispose();
-        nodeMaterial.dispose();
-        linesGeometry.dispose();
-        lineMaterial.dispose();
-        ringGeo.dispose();
-        ringMat.dispose();
+        // Clean up basic geometries
         packetGeo.dispose();
         packetMat.dispose();
+        nodeMaterial.dispose();
+        borderMaterial.dispose();
+        gridHelper.geometry.dispose();
+        gridHelper.material.dispose();
     };
   }, []);
 
