@@ -75,19 +75,17 @@ const ROICalculator: React.FC = () => {
     return `${linePath} L ${padding.left + graphWidth} ${padding.top + graphHeight} L ${padding.left} ${padding.top + graphHeight} Z`;
   };
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('fa-IR').format(Math.round(val));
-  };
-
+  // تابع فرمت اعداد فارسی برای اسلایدرها و متن‌ها
   const formatNumber = (val: number) => {
     return new Intl.NumberFormat('fa-IR').format(val);
   };
 
+  // تابع جدید: فرمت اعداد انگلیسی برای استفاده در نمودار
+  const formatNumberEn = (val: number) => {
+    return new Intl.NumberFormat('en-US').format(val);
+  };
+
   // Custom Slider Style for RTL direction
-  // In RTL, standard range input Min is on Right, Max is on Left.
-  // We want the 'filled' colored part to start from Right (Min) to the Thumb.
-  // Linear Gradient 'to left' goes from Right to Left.
-  // Stops: Color 0% -> Color X%, Dark X% -> Dark 100%.
   const getSliderStyle = (val: number, min: number, max: number) => {
     const percent = ((val - min) / (max - min)) * 100;
     return {
@@ -100,9 +98,9 @@ const ROICalculator: React.FC = () => {
       <style>{`
         /* Custom Range Input Styling */
         input[type=range] {
-          -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
-          width: 100%; /* Specific width is required for Firefox. */
-          background: transparent; /* Otherwise white in Chrome */
+          -webkit-appearance: none;
+          width: 100%;
+          background: transparent;
         }
 
         input[type=range]::-webkit-slider-thumb {
@@ -112,7 +110,7 @@ const ROICalculator: React.FC = () => {
           border-radius: 50%;
           background: #f8fafc;
           cursor: pointer;
-          margin-top: -8px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+          margin-top: -8px;
           box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
           border: 2px solid #8b5cf6;
           transition: transform 0.1s;
@@ -206,7 +204,8 @@ const ROICalculator: React.FC = () => {
                       textAnchor="end"
                       className="font-mono font-medium"
                     >
-                      {formatNumber(Math.round(maxY * tick))}M
+                      {/* استفاده از فرمت انگلیسی برای اعداد محور عمودی */}
+                      {formatNumberEn(Math.round(maxY * tick))}M
                     </text>
                   </g>
                 );
@@ -229,7 +228,8 @@ const ROICalculator: React.FC = () => {
                       textAnchor="middle"
                       className="font-bold"
                     >
-                      ماه {formatNumber(month)}
+                      {/* ماه فارسی باشد اما عدد آن انگلیسی */}
+                      ماه {formatNumberEn(month)}
                     </text>
                     <line x1={xPos} y1={padding.top + graphHeight} x2={xPos} y2={padding.top + graphHeight + 5} stroke="#334155" strokeWidth="1" />
                   </g>
