@@ -1,12 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-// @ts-ignore
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-// @ts-ignore
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-// @ts-ignore
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-// @ts-ignore
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 
 const ThreeLogo: React.FC = () => {
@@ -30,7 +26,7 @@ const ThreeLogo: React.FC = () => {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // محدود کردن پیکسل ریت برای پرفورمنس
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0x000000, 0); // شفافیت کامل پس‌زمینه (Alpha = 0)
     renderer.toneMapping = THREE.ReinhardToneMapping;
     renderer.toneMappingExposure = 1.5;
     
@@ -142,8 +138,8 @@ const ThreeLogo: React.FC = () => {
 
     // --- افکت Bloom ---
     const renderScene = new RenderPass(scene, camera);
-    renderScene.clearColor = new THREE.Color(0, 0, 0);
-    renderScene.clearAlpha = 0;
+    renderScene.clearColor = new THREE.Color(0, 0, 0); // رنگ پاکسازی
+    renderScene.clearAlpha = 0; // شفافیت کامل برای RenderPass (Alpha = 0)
     
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.0, 0.4, 0.85);
     bloomPass.threshold = 0;
