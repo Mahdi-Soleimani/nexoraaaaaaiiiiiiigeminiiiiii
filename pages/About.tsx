@@ -11,14 +11,14 @@ const About: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">داستان نکسورا</h1>
           <div className="space-y-4 text-slate-400 leading-relaxed text-lg text-justify">
             <p>
-              نکسورا در سال ۱۴۰۱ با یک هدف ساده اما بلندپروازانه متولد شد: 
+              نکسورا در سال ۱۴۰۴ با یک هدف ساده اما بلندپروازانه متولد شد: 
               <span className="text-white font-bold px-1">آوردن هوش مصنوعی از آزمایشگاه‌ها به قلب کسب‌وکارهای ایرانی.</span>
             </p>
             <p>
               ما تیمی از متخصصان داده، توسعه‌دهندگان نرم‌افزار و استراتژیست‌های کسب‌وکار هستیم که معتقدیم تکنولوژی باید در خدمت انسان باشد، نه جایگزین آن. در دنیایی که هر روز پیچیده‌تر می‌شود، ما سادگی و کارآمدی را برای سازمان شما به ارمغان می‌آوریم.
             </p>
             <p>
-              امروز، نکسورا افتخار همکاری با بیش از ۵۰ شرکت بزرگ و استارتاپ پیشرو را دارد و در تلاش است تا زیرساخت‌های هوشمند فردا را بسازد.
+              امروز، نکسورا با تمرکز در این حوزه و با استفاده از بروزترین تکنولوژی های روز دنیا در تلاش است تا زیرساخت‌های هوشمند فردا را بسازد.
             </p>
           </div>
         </div>
@@ -47,15 +47,22 @@ const About: React.FC = () => {
         <h2 className="text-3xl font-bold text-white mb-12 text-center">تیم متخصص ما</h2>
         <div className="grid md:grid-cols-4 gap-8">
           {[
-            { name: "آرش کمانگیر", role: "مدیرعامل", img: 31 },
-            { name: "سارا راد", role: "مدیر فنی AI", img: 32 },
-            { name: "کاوه آهنگر", role: "توسعه‌دهنده ارشد", img: 33 },
-            { name: "مریم نوری", role: "مدیر محصول", img: 34 },
+            // آدرس عکس‌ها باید دقیقاً مطابق نام فایل در پوشه public/team باشد
+            { name: "مهندس مهدی سلیمانی", role: "بنیان‌گذار و معمار ارشد سیستم", img: "/team/mahdi.jpg" },
+            { name: "مهندس عرفان تحویلیان", role: "مهندس اتوماسیون", img: "/team/erfan.jpg" },
+            { name: "نرگس میرزائی", role: "طراح تعاملات هوش مصنوعی", img: "/team/narges.jpg" },
+            { name: "مهشید کیانی", role: "متخصص یکپارچه‌سازی", img: "/team/mahshid.jpg" },
           ].map((member, i) => (
             <div key={i} className="group relative">
               <div className="relative overflow-hidden rounded-2xl aspect-[3/4] mb-4">
                 <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10"></div>
-                <img src={`https://picsum.photos/400/500?random=${member.img}`} alt={member.name} className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" />
+                
+                {/* تغییر مهم: استفاده مستقیم از آدرس عکس */}
+                <img 
+                  src={member.img} 
+                  alt={member.name} 
+                  className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" 
+                />
                 
                 {/* Social Overlay */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 translate-y-10 group-hover:translate-y-0 transition-transform duration-300 z-20">
