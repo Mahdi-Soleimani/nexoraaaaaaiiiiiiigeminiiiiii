@@ -1,5 +1,11 @@
 import React from 'react';
-import { Linkedin, Twitter } from 'lucide-react';
+import { Linkedin, Github } from 'lucide-react';
+
+// --- ایمپورت کردن عکس‌ها (مسیرها با ساختار جدید تنظیم شدند) ---
+import ceoImg from '../assets/team/ceo.png';       // طبق عکس شما
+import erfanImg from '../assets/team/erfan.jpg';   // طبق عکس شما
+import nargesImg from '../assets/team/narges.jpg'; // طبق عکس شما
+import mahshidImg from '../assets/team/mahshid.jpg'; // طبق عکس شما
 
 const About: React.FC = () => {
   return (
@@ -15,7 +21,7 @@ const About: React.FC = () => {
               <span className="text-white font-bold px-1">آوردن هوش مصنوعی از آزمایشگاه‌ها به قلب کسب‌وکارهای ایرانی.</span>
             </p>
             <p>
-              ما تیمی از متخصصان داده، توسعه‌دهندگان نرم‌افزار و استراتژیست‌های کسب‌وکار هستیم که معتقدیم تکنولوژی باید در خدمت انسان باشد، نه جایگزین آن. در دنیایی که هر روز پیچیده‌تر می‌شود، ما سادگی و کارآمدی را برای سازمان شما به ارمغان می‌آوریم.
+              ما تیمی از متخصصان داده، توسعه‌دهندگان نرم‌افزار و استراتژیست‌های کسب‌وکار هستیم که معتقدیم تکنولوژی باید در خدمت انسان باشد، نه جایگزین آن.
             </p>
             <p>
               امروز، نکسورا با تمرکز در این حوزه و با استفاده از بروزترین تکنولوژی های روز دنیا در تلاش است تا زیرساخت‌های هوشمند فردا را بسازد.
@@ -28,7 +34,7 @@ const About: React.FC = () => {
         </div>
       </section>
 
-      {/* Values */}
+      {/* Values Section */}
       <section className="grid md:grid-cols-3 gap-8 text-center">
         {[
           { title: "نوآوری مداوم", desc: "ما هرگز به وضع موجود راضی نیستیم و همیشه به دنبال راهکارهای جدیدتر هستیم." },
@@ -42,32 +48,25 @@ const About: React.FC = () => {
         ))}
       </section>
 
-      {/* Team */}
+      {/* Team Section */}
       <section>
         <h2 className="text-3xl font-bold text-white mb-12 text-center">تیم متخصص ما</h2>
         <div className="grid md:grid-cols-4 gap-8">
           {[
-            // آدرس عکس‌ها باید دقیقاً مطابق نام فایل در پوشه public/team باشد
-            { name: "مهندس مهدی سلیمانی", role: "بنیان‌گذار و معمار ارشد سیستم", img: "./team/ceo.png" },
-            { name: "مهندس عرفان تحویلیان", role: "مهندس اتوماسیون", img: "./team/erfan.jpg" },
-            { name: "نرگس میرزائی", role: "طراح تعاملات هوش مصنوعی", img: "./team/narges.jpg" },
-            { name: "مهشید کیانی", role: "متخصص یکپارچه‌سازی", img: "./team/mahshid.jpg" },
+            // اتصال متغیرهای ایمپورت شده به افراد
+            { name: "مهندس مهدی سلیمانی", role: "بنیان‌گذار و معمار ارشد سیستم", img: ceoImg },
+            { name: "مهندس عرفان تحویلیان", role: "مهندس اتوماسیون", img: erfanImg },
+            { name: "نرگس میرزائی", role: "طراح تعاملات هوش مصنوعی", img: nargesImg },
+            { name: "مهشید کیانی", role: "متخصص یکپارچه‌سازی", img: mahshidImg },
           ].map((member, i) => (
             <div key={i} className="group relative">
               <div className="relative overflow-hidden rounded-2xl aspect-[3/4] mb-4">
                 <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10"></div>
+                <img src={member.img} alt={member.name} className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" />
                 
-                {/* تغییر مهم: استفاده مستقیم از آدرس عکس */}
-                <img 
-                  src={member.img} 
-                  alt={member.name} 
-                  className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500" 
-                />
-                
-                {/* Social Overlay */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 translate-y-10 group-hover:translate-y-0 transition-transform duration-300 z-20">
                   <button className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-primary transition-colors"><Linkedin size={18} /></button>
-                  <button className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-cyan-500 transition-colors"><Twitter size={18} /></button>
+                  <button className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-cyan-500 transition-colors"><Github size={18} /></button>
                 </div>
               </div>
               <h3 className="text-lg font-bold text-white text-center">{member.name}</h3>
