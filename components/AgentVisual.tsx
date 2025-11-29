@@ -9,7 +9,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 // @ts-ignore
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
-const N8nFlowchart: React.FC = () => {
+const N8nComplexFlowchart: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,14 +22,15 @@ const N8nFlowchart: React.FC = () => {
 
     // --- 1. Scene Setup ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x00020a, 0.02); // زمینه تیره
+    scene.fog = new THREE.FogExp2(0x00020a, 0.015);
 
     const width = container.clientWidth;
     const height = container.clientHeight;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 15); // نمای روبرو
-    camera.lookAt(0, 0, 0);
+    // دوربین را عقب‌تر می‌بریم تا کل گراف دیده شود
+    camera.position.set(0, 0, 22); 
+    camera.lookAt(0, -2, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -38,171 +39,272 @@ const N8nFlowchart: React.FC = () => {
     container.appendChild(renderer.domElement);
 
     // --- 2. Materials ---
-    const nodeBodyMat = new THREE.MeshPhysicalMaterial({
-        color: 0x0f172a, // رنگ بدنه تیره
-        metalness: 0.5,
+    const mainNodeMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0f172a,
+        metalness: 0.6,
         roughness: 0.2,
         emissive: 0x1e293b,
+        emissiveIntensity: 0.3,
+    });
+
+    const aiNodeMat = new THREE.MeshPhysicalMaterial({
+        color: 0x1e1b4b, // رنگ متمایز برای AI
+        metalness: 0.8,
+        roughness: 0.1,
+        emissive: 0x4338ca,
+        emissiveIntensity: 0.5,
+    });
+
+    const toolNodeMat = new THREE.MeshPhysicalMaterial({
+        color: 0x064e3b, // سبز تیره برای ابزارها
+        metalness: 0.4,
+        roughness: 0.3,
+        emissive: 0x065f46,
         emissiveIntensity: 0.2,
     });
 
-    const nodeBorderMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 });
-    const connectionMat = new THREE.LineBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.3 });
-    const packetMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // پکت‌های فیروزه‌ای
+    const packetMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
     
-    // --- 3. Helper Function to Create Nodes ---
-    const createNode = (x: number, y: number, label: string, color: number) => {
+    // --- 3. Node Creation Helper ---
+    const createNode = (
+        x: number, 
+        y: number, 
+        type: 'main' | 'ai' | 'tool', 
+        iconType: 'edit' | 'ai' | 'code' | 'db' | 'google' | 'clock',
+        sizeScale: number = 1
+    ) => {
         const group = new THREE.Group();
         group.position.set(x, y, 0);
 
-        // بدنه نود (مستطیل گرد)
-        const geo = new RoundedBoxGeometry(2, 1, 0.2, 4, 0.1);
-        const mesh = new THREE.Mesh(geo, nodeBodyMat);
+        // انتخاب متریال بر اساس نوع نود
+        let mat = mainNodeMat;
+        if (type === 'ai') mat = aiNodeMat;
+        if (type === 'tool') mat = toolNodeMat;
+
+        // بدنه نود
+        const width = 2.2 * sizeScale;
+        const height = 1.2 * sizeScale;
+        const geo = new RoundedBoxGeometry(width, height, 0.2, 4, 0.1);
+        const mesh = new THREE.Mesh(geo, mat);
         group.add(mesh);
 
         // حاشیه نود
         const edges = new THREE.EdgesGeometry(geo);
-        const border = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: color, opacity: 0.8, transparent: true }));
+        const borderColor = type === 'ai' ? 0xa855f7 : (type === 'tool' ? 0x34d399 : 0x3b82f6);
+        const border = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: borderColor, transparent: true, opacity: 0.6 }));
         group.add(border);
 
-        // آیکون وسط نود (ساده شده)
+        // آیکون سه بعدی
         const iconMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         let iconGeo;
-        if (label === 'Start') iconGeo = new THREE.ConeGeometry(0.2, 0.4, 3);
-        else if (label === 'AI') iconGeo = new THREE.TorusGeometry(0.2, 0.05, 8, 16); // حلقه برای AI
-        else iconGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        switch(iconType) {
+            case 'edit': // مداد
+                iconGeo = new THREE.ConeGeometry(0.15, 0.4, 4);
+                break;
+            case 'ai': // ربات/مغز
+                iconGeo = new THREE.IcosahedronGeometry(0.3, 0);
+                break;
+            case 'code': // براکت
+                iconGeo = new THREE.BoxGeometry(0.3, 0.2, 0.1);
+                break;
+            case 'db': // دیتابیس
+                iconGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 16);
+                break;
+            case 'google': // کره
+                iconGeo = new THREE.SphereGeometry(0.2, 16, 16);
+                break;
+            case 'clock': // ساعت
+                iconGeo = new THREE.TorusGeometry(0.2, 0.05, 16, 32);
+                break;
+            default:
+                iconGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        }
         
         const icon = new THREE.Mesh(iconGeo, iconMat);
         icon.position.z = 0.15;
-        if(label === 'Start') icon.rotation.z = -Math.PI/2;
+        if (iconType === 'edit') icon.rotation.z = -Math.PI / 4;
+        if (iconType === 'db') icon.rotation.x = Math.PI / 2;
         group.add(icon);
 
-        // برچسب متنی (شبیه‌سازی با نور رنگی زیر نود)
-        const glowGeo = new THREE.PlaneGeometry(2.2, 1.2);
-        const glowMat = new THREE.MeshBasicMaterial({ 
-            color: color, 
-            transparent: true, 
-            opacity: 0.1, 
-            side: THREE.DoubleSide 
-        });
-        const glow = new THREE.Mesh(glowGeo, glowMat);
-        glow.position.z = -0.1;
-        group.add(glow);
-
         scene.add(group);
-        return group;
+        return { group, type };
     };
 
-    // --- 4. Create Nodes ---
-    // A. Left Node (Trigger)
-    const startNode = createNode(-5, 0, 'Start', 0x22c55e); // سبز برای شروع
+    // --- 4. Building the Graph Structure ---
+    const nodes: { group: THREE.Group, type: string }[] = [];
 
-    // B. Middle Node (AI Agent)
-    const aiNode = createNode(0, 0, 'AI', 0xa855f7); // بنفش برای هوش مصنوعی
+    // A. Main Flow (Top Row)
+    const edit1 = createNode(-10, 3, 'main', 'edit');
+    const edit2 = createNode(-6, 3, 'main', 'edit');
+    const aiAgent = createNode(0, 3, 'ai', 'ai', 1.3); // بزرگتر
+    const codeJs = createNode(6, 3, 'main', 'code');
+    const insertDb = createNode(10, 3, 'main', 'db');
 
-    // C. Right Nodes (Outputs)
-    const outNode1 = createNode(5, 1.5, 'Out1', 0x3b82f6); // آبی
-    const outNode2 = createNode(5, -1.5, 'Out2', 0x3b82f6); // آبی
+    nodes.push(edit1, edit2, aiAgent, codeJs, insertDb);
 
-    const nodes = [startNode, aiNode, outNode1, outNode2];
+    // B. Tools & Memory (Bottom Arc)
+    // چیدن نودها به صورت کمانی در زیر نود هوش مصنوعی
+    const tools = [
+        { type: 'google', x: -8 },
+        { type: 'db', x: -5.5 }, // Memory
+        { type: 'db', x: -3 },   // Team
+        { type: 'db', x: -0.5 }, // Company
+        { type: 'db', x: 2 },    // Tasks
+        { type: 'db', x: 4.5 },  // Security
+        { type: 'db', x: 7 },    // Meetings
+        { type: 'clock', x: 9.5 } // Time
+    ];
 
-    // --- 5. Create Connections (Curves) ---
-    const curves: THREE.CubicBezierCurve3[] = [];
+    const toolNodes: THREE.Group[] = [];
+    tools.forEach(t => {
+        // قرارگیری در ارتفاع پایین‌تر
+        const node = createNode(t.x, -3, 'tool', t.type as any, 0.9);
+        toolNodes.push(node.group);
+        nodes.push(node);
+    });
 
-    const connect = (n1: THREE.Group, n2: THREE.Group) => {
+    // --- 5. Connections ---
+    const curves: { curve: THREE.Curve<THREE.Vector3>, type: 'solid' | 'dashed' }[] = [];
+    const solidLineMat = new THREE.LineBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.4 });
+    const dashedLineMat = new THREE.LineDashedMaterial({ color: 0x34d399, dashSize: 0.5, gapSize: 0.3, transparent: true, opacity: 0.3 });
+
+    const connect = (n1: THREE.Group, n2: THREE.Group, style: 'solid' | 'dashed') => {
         const start = n1.position.clone();
         const end = n2.position.clone();
-        // نقاط کنترل برای ایجاد منحنی S شکل (Bezier)
+        
+        // تنظیم نقاط اتصال (از راست نود اول به چپ نود دوم برای خط اصلی)
+        if (style === 'solid') {
+            start.x += 1;
+            end.x -= 1;
+        } else {
+            // اتصال از بالا به پایین برای ابزارها
+            start.y += 0.5; // از بالای ابزار
+            end.y -= 0.6;   // به پایین هوش مصنوعی
+            // کمی تصحیح موقعیت برای نودهای چپ و راست AI
+            if (start.x < end.x) end.x -= 0.5;
+            if (start.x > end.x) end.x += 0.5;
+        }
+
         const dist = start.distanceTo(end);
-        const control1 = start.clone().add(new THREE.Vector3(dist * 0.5, 0, 0));
-        const control2 = end.clone().add(new THREE.Vector3(-dist * 0.5, 0, 0));
+        const control1 = start.clone();
+        const control2 = end.clone();
+
+        if (style === 'solid') {
+            control1.x += dist * 0.4;
+            control2.x -= dist * 0.4;
+        } else {
+            // منحنی‌های عمودی برای ابزارها
+            control1.y += 2;
+            control2.y -= 2;
+        }
 
         const curve = new THREE.CubicBezierCurve3(start, control1, control2, end);
-        curves.push(curve);
+        curves.push({ curve, type: style });
 
         const points = curve.getPoints(50);
-        const geo = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geo, connectionMat);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, style === 'solid' ? solidLineMat : dashedLineMat);
+        if (style === 'dashed') line.computeLineDistances(); // ضروری برای خط چین
         scene.add(line);
     };
 
-    // اتصال ۱: شروع به AI
-    connect(startNode, aiNode);
-    // اتصال ۲: AI به خروجی بالا
-    connect(aiNode, outNode1);
-    // اتصال ۳: AI به خروجی پایین
-    connect(aiNode, outNode2);
+    // اتصالات اصلی
+    connect(edit1.group, edit2.group, 'solid');
+    connect(edit2.group, aiAgent.group, 'solid');
+    connect(aiAgent.group, codeJs.group, 'solid');
+    connect(codeJs.group, insertDb.group, 'solid');
+
+    // اتصالات ابزارها به هوش مصنوعی
+    toolNodes.forEach(tool => {
+        connect(tool, aiAgent.group, 'dashed');
+    });
 
     // --- 6. Data Packets ---
-    const packets: { mesh: THREE.Mesh, curveIdx: number, progress: number, speed: number, delay: number }[] = [];
-    const packetGeo = new THREE.SphereGeometry(0.12, 16, 16);
+    const packets: { mesh: THREE.Mesh, curveIdx: number, progress: number, speed: number }[] = [];
+    const packetGeo = new THREE.SphereGeometry(0.12, 8, 8);
 
-    // ایجاد پکت‌ها
-    for(let i=0; i<12; i++) {
+    // ایجاد پکت‌ها برای خطوط اصلی
+    const solidCurvesIndices = curves.map((c, i) => c.type === 'solid' ? i : -1).filter(i => i !== -1);
+    const dashedCurvesIndices = curves.map((c, i) => c.type === 'dashed' ? i : -1).filter(i => i !== -1);
+
+    // پکت‌های جریان اصلی (آبی/فیروزه‌ای)
+    for(let i=0; i<8; i++) {
         const mesh = new THREE.Mesh(packetGeo, packetMat);
-        mesh.visible = false; // ابتدا مخفی
         scene.add(mesh);
         packets.push({
             mesh,
-            curveIdx: 0, // همه از مسیر اول شروع می‌کنند
-            progress: 0,
-            speed: 0.008, // سرعت حرکت
-            delay: i * 0.5 // تاخیر برای پشت سر هم آمدن
+            curveIdx: solidCurvesIndices[0], // شروع از اول خط
+            progress: Math.random(), // موقعیت تصادفی
+            speed: 0.01
         });
     }
 
-    // --- 7. Post Processing (Glow) ---
+    // پکت‌های ابزارها (سبز/داده) - حرکت به سمت بالا
+    const dataMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+    for(let i=0; i<10; i++) {
+        const mesh = new THREE.Mesh(packetGeo, dataMat);
+        scene.add(mesh);
+        packets.push({
+            mesh,
+            curveIdx: dashedCurvesIndices[Math.floor(Math.random() * dashedCurvesIndices.length)],
+            progress: Math.random(),
+            speed: 0.005 + Math.random() * 0.005
+        });
+    }
+
+    // --- 7. Post Processing ---
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0;
-    bloomPass.strength = 1.2;
+    bloomPass.strength = 1.0;
     bloomPass.radius = 0.5;
 
     const composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
 
-    // --- 8. Animation ---
+    // --- 8. Animation Loop ---
     let time = 0;
     const animate = () => {
         requestAnimationFrame(animate);
         time += 0.01;
 
-        // انیمیشن شناور بودن نودها
+        // انیمیشن نودها (شناوری ملایم)
         nodes.forEach((n, i) => {
-            n.position.y += Math.sin(time * 2 + i) * 0.002;
+            n.group.position.y += Math.sin(time * 2 + i * 0.5) * 0.0015;
         });
 
         // انیمیشن پکت‌ها
         packets.forEach(p => {
-            if (p.delay > 0) {
-                p.delay -= 0.01;
-                return;
-            }
-            
-            p.mesh.visible = true;
             p.progress += p.speed;
-
             if (p.progress >= 1) {
-                // وقتی به انتهای مسیر رسید
-                if (p.curveIdx === 0) {
-                    // اگر در مسیر اول بود (شروع به AI)، حالا باید برود به یکی از خروجی‌ها
-                    p.progress = 0;
-                    // انتخاب تصادفی بین خروجی ۱ (ایندکس ۱) و خروجی ۲ (ایندکس ۲)
-                    p.curveIdx = Math.random() > 0.5 ? 1 : 2;
+                p.progress = 0;
+                
+                // منطق ساده مسیردهی
+                const currentCurveType = curves[p.curveIdx].type;
+                if (currentCurveType === 'solid') {
+                    // اگر در خط اصلی است، برو به خط بعدی اصلی (اگر هست)
+                    const currentSolidIndex = solidCurvesIndices.indexOf(p.curveIdx);
+                    if (currentSolidIndex < solidCurvesIndices.length - 1) {
+                        p.curveIdx = solidCurvesIndices[currentSolidIndex + 1];
+                    } else {
+                        p.curveIdx = solidCurvesIndices[0]; // لوپ به اول
+                    }
                 } else {
-                    // اگر به انتهای خروجی رسید، ریست شود به شروع
+                    // پکت‌های ابزار فقط در مسیر خود لوپ می‌زنند
+                    // یا می‌توانیم بگوییم وقتی رسیدند بالا، برگردند پایین؟ نه، لوپ ساده
                     p.progress = 0;
-                    p.curveIdx = 0;
-                    p.mesh.visible = false;
-                    p.delay = 1.0; // کمی مکث قبل از شروع مجدد
                 }
             }
 
-            const curve = curves[p.curveIdx];
-            const point = curve.getPoint(p.progress);
+            const curveObj = curves[p.curveIdx];
+            const point = curveObj.curve.getPoint(p.progress);
             p.mesh.position.copy(point);
         });
+
+        // افکت تپش قلب برای هوش مصنوعی
+        const pulse = 1 + Math.sin(time * 4) * 0.05;
+        aiAgent.group.scale.set(1 * pulse, 1 * pulse, 1);
 
         composer.render();
     };
@@ -227,7 +329,7 @@ const N8nFlowchart: React.FC = () => {
     };
   }, []);
 
-  return <div ref={mountRef} className="w-full h-full min-h-[400px]" />;
+  return <div ref={mountRef} className="w-full h-full min-h-[500px]" />;
 };
 
-export default N8nFlowchart;
+export default N8nComplexFlowchart;
