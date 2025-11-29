@@ -22,7 +22,6 @@ const N8nComplexFlowchart: React.FC = () => {
 
     // --- 1. Scene Setup ---
     const scene = new THREE.Scene();
-    // رنگ پس‌زمینه دقیقا طبق عکس (سرمه‌ای بسیار تیره)
     const bgColor = 0x020410; 
     scene.background = new THREE.Color(bgColor);
     scene.fog = new THREE.FogExp2(bgColor, 0.02);
@@ -31,7 +30,7 @@ const N8nComplexFlowchart: React.FC = () => {
     const height = container.clientHeight;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 18);
+    camera.position.set(0, 1, 19); // کمی بالاتر برای دید بهتر به ربات
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -39,102 +38,137 @@ const N8nComplexFlowchart: React.FC = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    // --- 2. Background Grid (Engineering Look) ---
-    // گرید محو در پس‌زمینه شبیه عکس دوم
-    const gridHelper = new THREE.GridHelper(60, 40, 0x1e293b, 0x0f172a);
-    gridHelper.rotation.x = Math.PI / 2; // عمودی کردن گرید
-    gridHelper.position.z = -5;
-    scene.add(gridHelper);
+    // --- 2. Lighting ---
+    // نورپردازی استودیویی برای ربات
+    const ambientLight = new THREE.AmbientLight(0x111111);
+    scene.add(ambientLight);
 
-    // --- 3. Materials (Glass & Neon) ---
-    
-    // متریال شیشه‌ای تیره برای نودها
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1);
+    keyLight.position.set(5, 5, 10);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.SpotLight(0xa855f7, 5); // نور پشت بنفش
+    rimLight.position.set(-5, 5, -5);
+    rimLight.lookAt(0, 0, 0);
+    scene.add(rimLight);
+
+    // --- 3. Materials ---
     const glassMat = new THREE.MeshPhysicalMaterial({
         color: 0x0f172a,
         metalness: 0.9,
         roughness: 0.1,
-        transmission: 0.4, // شیشه‌ای بودن
+        transmission: 0.4,
         transparent: true,
         thickness: 0.5,
         clearcoat: 1.0,
     });
 
-    // متریال هسته مرکزی (بنفش درخشان - شبیه عکس اول)
-    const coreMat = new THREE.MeshPhysicalMaterial({
-        color: 0x2e1065, // بنفش تیره
-        emissive: 0x7e22ce, // بنفش روشن
-        emissiveIntensity: 0.8,
+    // متریال بدنه ربات (فلز تیره و صیقلی)
+    const robotBodyMat = new THREE.MeshPhysicalMaterial({
+        color: 0x1e293b,
         metalness: 0.8,
         roughness: 0.2,
-        transparent: true,
-        opacity: 0.9
+        clearcoat: 1.0,
     });
 
-    // متریال خط‌چین مدارها
+    // متریال صورت ربات (شیشه سیاه)
+    const visorMat = new THREE.MeshPhysicalMaterial({
+        color: 0x000000,
+        metalness: 0.9,
+        roughness: 0.1,
+    });
+
+    // چشم‌های درخشان
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // چشم فیروزه‌ای
+    
     const dashLineMat = new THREE.LineDashedMaterial({
-        color: 0x3b82f6, // آبی کلاسیک n8n
+        color: 0x3b82f6,
         dashSize: 0.2,
         gapSize: 0.2,
         transparent: true,
         opacity: 0.3,
     });
 
-    // --- 4. Central Hub (The AI Agent - Scanner Style) ---
-    const centerGroup = new THREE.Group();
-    scene.add(centerGroup);
+    // --- 4. Central Hub (The Corporate Robot) ---
+    const robotGroup = new THREE.Group();
+    scene.add(robotGroup);
 
-    // کپسول مرکزی (شبیه عکس اول)
-    const capsuleGeo = new RoundedBoxGeometry(2.5, 3.5, 0.5, 8, 0.5);
-    const capsule = new THREE.Mesh(capsuleGeo, coreMat);
-    centerGroup.add(capsule);
+    // A. Head
+    const headGeo = new THREE.SphereGeometry(1.2, 32, 32);
+    const head = new THREE.Mesh(headGeo, robotBodyMat);
+    head.position.y = 1.5;
+    robotGroup.add(head);
 
-    // حلقه اسکنر داخل کپسول (چشم)
-    const eyeGeo = new THREE.TorusGeometry(0.6, 0.05, 16, 32);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const eye = new THREE.Mesh(eyeGeo, eyeMat);
-    eye.position.z = 0.3;
-    centerGroup.add(eye);
+    // B. Visor (صورت شیشه‌ای)
+    // ایجاد یک تکه از کره برای صورت
+    const visorGeo = new THREE.SphereGeometry(1.21, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.35);
+    const visor = new THREE.Mesh(visorGeo, visorMat);
+    visor.rotation.x = -Math.PI / 2;
+    visor.position.y = 1.5;
+    visor.position.z = 0.05; // کمی جلوتر از سر
+    robotGroup.add(visor);
 
-    // مردمک چشم
-    const pupilGeo = new THREE.SphereGeometry(0.2, 16, 16);
-    const pupil = new THREE.Mesh(pupilGeo, new THREE.MeshBasicMaterial({ color: 0xa855f7 })); // بنفش نئونی
-    pupil.position.z = 0.3;
-    centerGroup.add(pupil);
+    // C. Eyes (Digital Look)
+    const eyeGeo = new THREE.PlaneGeometry(0.8, 0.15);
+    const eyeMesh = new THREE.Mesh(eyeGeo, glowMat);
+    eyeMesh.position.set(0, 1.5, 1.15); // روی وایزور
+    // کمی خمیدگی به چشم نمی‌دهیم اما با تکسچر یا شکل ساده نگه می‌داریم
+    robotGroup.add(eyeMesh);
 
-    // افکت اسکن (خط افقی متحرک)
-    const scanLineGeo = new THREE.PlaneGeometry(2.2, 0.05);
-    const scanLineMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });
-    const scanLine = new THREE.Mesh(scanLineGeo, scanLineMat);
-    scanLine.position.z = 0.35;
-    centerGroup.add(scanLine);
+    // D. Torso/Body
+    const torsoGeo = new RoundedBoxGeometry(1.8, 2.2, 1.2, 4, 0.2);
+    const torso = new THREE.Mesh(torsoGeo, robotBodyMat);
+    torso.position.y = -0.5;
+    robotGroup.add(torso);
 
-    // --- 5. Orbiting System (Tools & Memory) ---
-    // ساخت مدارهای دایره‌ای شبیه عکس دوم
-    
+    // E. Glowing Chest Core (Heart of AI)
+    const coreGeo = new THREE.CircleGeometry(0.4, 32);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 }); // بنفش
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.set(0, -0.2, 0.61);
+    robotGroup.add(core);
+
+    // F. Shoulders (Simple spheres)
+    const shoulderGeo = new THREE.SphereGeometry(0.7, 16, 16);
+    const leftShoulder = new THREE.Mesh(shoulderGeo, robotBodyMat);
+    leftShoulder.position.set(-1.2, 0.2, 0);
+    const rightShoulder = new THREE.Mesh(shoulderGeo, robotBodyMat);
+    rightShoulder.position.set(1.2, 0.2, 0);
+    robotGroup.add(leftShoulder, rightShoulder);
+
+    // G. Levitation Rings (Base)
+    const ringGeo = new THREE.TorusGeometry(1.5, 0.05, 16, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = -2;
+    robotGroup.add(ring);
+
+    // --- 5. Background Grid ---
+    const gridHelper = new THREE.GridHelper(60, 40, 0x1e293b, 0x0f172a);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.z = -5;
+    scene.add(gridHelper);
+
+    // --- 6. Orbiting System ---
     const createOrbitRing = (radius: number) => {
         const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, 2 * Math.PI, false, 0);
         const points = curve.getPoints(64);
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const line = new THREE.Line(geometry, dashLineMat);
-        line.computeLineDistances(); // برای فعال شدن خط‌چین
+        line.computeLineDistances();
         return line;
     };
+    scene.add(createOrbitRing(4.5));
+    scene.add(createOrbitRing(7));
 
-    const orbit1 = createOrbitRing(4);
-    const orbit2 = createOrbitRing(6.5);
-    scene.add(orbit1);
-    scene.add(orbit2);
-
-    // تابع ساخت نودهای کوچک (آیکون‌دار)
+    // Satellites
     const createSatelliteNode = (radius: number, angle: number, iconType: string, color: number) => {
         const group = new THREE.Group();
         group.userData = { radius, angle, speed: (Math.random() * 0.005 + 0.002) * (Math.random() > 0.5 ? 1 : -1) };
-        
-        // محاسبه پوزیشن اولیه
         group.position.x = Math.cos(angle) * radius;
         group.position.y = Math.sin(angle) * radius;
 
-        // بدنه نود (مربع گرد شیشه‌ای - شبیه آیکون‌های عکس دوم)
         const geo = new RoundedBoxGeometry(1.2, 1.2, 0.2, 4, 0.2);
         const mat = glassMat.clone();
         // @ts-ignore
@@ -142,13 +176,11 @@ const N8nComplexFlowchart: React.FC = () => {
         const mesh = new THREE.Mesh(geo, mat);
         group.add(mesh);
 
-        // حاشیه رنگی نود
         const borderGeo = new THREE.EdgesGeometry(geo);
         const borderMat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.8 });
         const border = new THREE.LineSegments(borderGeo, borderMat);
         group.add(border);
 
-        // آیکون
         const iconMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         let iconGeo;
         if(iconType === 'db') iconGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 16);
@@ -166,129 +198,89 @@ const N8nComplexFlowchart: React.FC = () => {
     };
 
     const satellites: THREE.Group[] = [];
-    // مدار داخلی
-    satellites.push(createSatelliteNode(4, 0, 'db', 0x00ffff)); // دیتابیس (فیروزه‌ای)
-    satellites.push(createSatelliteNode(4, Math.PI, 'lightning', 0xeab308)); // رعد (زرد)
-    
-    // مدار خارجی
-    satellites.push(createSatelliteNode(6.5, Math.PI/2, 'mail', 0xa855f7)); // ایمیل (بنفش)
-    satellites.push(createSatelliteNode(6.5, -Math.PI/2, 'google', 0x3b82f6)); // گوگل (آبی)
+    satellites.push(createSatelliteNode(4.5, 0, 'db', 0x00ffff));
+    satellites.push(createSatelliteNode(4.5, Math.PI, 'lightning', 0xeab308));
+    satellites.push(createSatelliteNode(7, Math.PI/2, 'mail', 0xa855f7));
+    satellites.push(createSatelliteNode(7, -Math.PI/2, 'google', 0x3b82f6));
 
-    // --- 6. Main Flow (Horizontal Line) ---
-    // خط افقی که از وسط رد می‌شود (ورودی/خروجی)
-    const mainFlowGroup = new THREE.Group();
-    scene.add(mainFlowGroup);
-    
-    const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-10, 0, 0),
-        new THREE.Vector3(-3, 0, 0) // وصل به چپ کپسول مرکزی
-    ]);
-    const lineGeo2 = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(3, 0, 0), // وصل به راست کپسول مرکزی
-        new THREE.Vector3(10, 0, 0)
-    ]);
-    
+    // --- 7. Main Flow Lines ---
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-12, 0, 0), new THREE.Vector3(-2.5, 0, 0)]);
+    const lineGeo2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(2.5, 0, 0), new THREE.Vector3(12, 0, 0)]);
     const mainLineMat = new THREE.LineBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.5 });
-    mainFlowGroup.add(new THREE.Line(lineGeo, mainLineMat));
-    mainFlowGroup.add(new THREE.Line(lineGeo2, mainLineMat));
+    scene.add(new THREE.Line(lineGeo, mainLineMat));
+    scene.add(new THREE.Line(lineGeo2, mainLineMat));
 
-    // نود شروع و پایان (ساده)
-    const startNode = createSatelliteNode(10, Math.PI, 'edit', 0xffffff); // این فقط برای شکل است، پوزیشنش دستی ست می‌شود
-    startNode.position.set(-10, 0, 0);
-    startNode.userData.isStatic = true; // این نود نمی‌چرخد
-    
-    const endNode = createSatelliteNode(10, 0, 'code', 0xffffff);
-    endNode.position.set(10, 0, 0);
-    endNode.userData.isStatic = true;
-
-    // --- 7. Data Packets (Glowing Particles) ---
+    // --- 8. Data Packets ---
     const packetGeo = new THREE.SphereGeometry(0.1, 16, 16);
     const packetMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-    const packets: { mesh: THREE.Mesh, path: 'orbit1' | 'orbit2' | 'main', progress: number, speed: number, offset?: number }[] = [];
+    const packets: { mesh: THREE.Mesh, path: 'orbit' | 'main', progress: number, speed: number, radius?: number }[] = [];
 
-    // پکت‌های مداری
+    // Main flow packets
+    for(let i=0; i<5; i++) {
+        const mesh = new THREE.Mesh(packetGeo, new THREE.MeshBasicMaterial({ color: 0xa855f7 }));
+        scene.add(mesh);
+        packets.push({ mesh, path: 'main', progress: -12 + i * 5, speed: 0.08 });
+    }
+    // Orbit packets
     for(let i=0; i<6; i++) {
         const mesh = new THREE.Mesh(packetGeo, packetMat);
         scene.add(mesh);
-        packets.push({
-            mesh,
-            path: i % 2 === 0 ? 'orbit1' : 'orbit2',
-            progress: Math.random() * Math.PI * 2, // زاویه برای مدار
-            speed: 0.02,
-            offset: i % 2 === 0 ? 4 : 6.5 // شعاع
-        });
+        packets.push({ mesh, path: 'orbit', progress: Math.random() * Math.PI * 2, speed: 0.02, radius: i%2===0 ? 4.5 : 7 });
     }
 
-    // پکت‌های جریان اصلی (افقی)
-    for(let i=0; i<4; i++) {
-        const mesh = new THREE.Mesh(packetGeo, new THREE.MeshBasicMaterial({ color: 0xa855f7 })); // بنفش
-        scene.add(mesh);
-        packets.push({
-            mesh,
-            path: 'main',
-            progress: -10 + (Math.random() * 20), // موقعیت X
-            speed: 0.1
-        });
-    }
-
-
-    // --- 8. Post Processing (Neon Bloom) ---
+    // --- 9. Post Processing ---
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0;
-    bloomPass.strength = 1.3; // درخشش نئونی قوی
-    bloomPass.radius = 0.6;
-
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 1.2;
+    bloomPass.radius = 0.5;
     const composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
 
-    // --- 9. Animation Loop ---
+    // --- 10. Animation ---
     let time = 0;
     const animate = () => {
         requestAnimationFrame(animate);
         time += 0.01;
 
-        // انیمیشن اسکنر (چشم مرکزی)
-        scanLine.position.y = Math.sin(time * 2) * 1.5; // حرکت بالا پایین
-        pupil.scale.setScalar(0.8 + Math.sin(time * 5) * 0.2); // تپش مردمک
+        // Robot Animation
+        robotGroup.position.y = Math.sin(time) * 0.2; // Hover
+        // سر ربات کمی به چپ و راست می‌چرخد (نظارت)
+        head.rotation.y = Math.sin(time * 0.5) * 0.3;
+        visor.rotation.y = Math.sin(time * 0.5) * 0.3;
+        eyeMesh.rotation.y = Math.sin(time * 0.5) * 0.3;
+        // بدنه کمی خلاف جهت سر می‌چرخد برای تعادل
+        torso.rotation.y = Math.sin(time * 0.5) * -0.05;
 
-        // چرخش نودهای ماهواره‌ای (Satellites)
+        // حلقه زیر پای ربات
+        ring.scale.setScalar(1 + Math.sin(time * 3) * 0.05);
+
+        // Satellites
         satellites.forEach(sat => {
-            if (sat.userData.isStatic) return;
-
-            const data = sat.userData;
-            data.angle += data.speed;
-            sat.position.x = Math.cos(data.angle) * data.radius;
-            sat.position.y = Math.sin(data.angle) * data.radius;
-            
-            // نود همیشه صاف بماند (نچرخد همراه مدار)
-            sat.rotation.z = 0; 
+            const d = sat.userData;
+            d.angle += d.speed;
+            sat.position.x = Math.cos(d.angle) * d.radius;
+            sat.position.y = Math.sin(d.angle) * d.radius;
+            sat.rotation.z = 0; // ثابت نگه داشتن زاویه خود نود
         });
 
-        // حرکت پکت‌ها
+        // Packets
         packets.forEach(p => {
             if (p.path === 'main') {
                 p.progress += p.speed;
-                if (p.progress > 10) p.progress = -10; // ریست
-                // پرش از روی مرکز (چون کپسول آنجاست)
-                if (p.progress > -2.5 && p.progress < 2.5) {
-                    p.mesh.visible = false;
-                } else {
+                if(p.progress > 12) p.progress = -12;
+                if(p.progress > -2.5 && p.progress < 2.5) p.mesh.visible = false; // مخفی شدن پشت ربات
+                else {
                     p.mesh.visible = true;
                     p.mesh.position.set(p.progress, 0, 0);
                 }
             } else {
-                // حرکت روی مدار
                 p.progress += p.speed;
-                p.mesh.position.x = Math.cos(p.progress) * p.offset!;
-                p.mesh.position.y = Math.sin(p.progress) * p.offset!;
+                p.mesh.position.x = Math.cos(p.progress) * p.radius!;
+                p.mesh.position.y = Math.sin(p.progress) * p.radius!;
             }
         });
-
-        // چرخش ملایم کل صحنه (برای افکت سه بعدی جذاب)
-        scene.rotation.y = Math.sin(time * 0.2) * 0.05;
-        scene.rotation.x = Math.sin(time * 0.1) * 0.05;
 
         composer.render();
     };
