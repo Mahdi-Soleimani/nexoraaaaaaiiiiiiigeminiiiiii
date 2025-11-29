@@ -334,7 +334,7 @@ const AgentVisual: React.FC = () => {
     };
   }, []);
 
-  return <div ref={mountRef} className="w-full h-full min-h-[600px]" />;
+  return <div ref={mountRef} className="w-full h-full min-h-[400px]" />;
 };
 
 export default AgentVisual;
