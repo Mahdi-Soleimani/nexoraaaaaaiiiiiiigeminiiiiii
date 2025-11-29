@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-// @ts-ignore - اگر حتی با فایل d.ts مشکل حل نشد، این خط ارور را نادیده می‌گیرد
+// @ts-ignore
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 // @ts-ignore
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
@@ -16,14 +16,14 @@ const AgentVisual: React.FC = () => {
     if (!mountRef.current) return;
     const container = mountRef.current;
 
-    // پاکسازی محتویات قبلی در صورت وجود (برای جلوگیری از تکرار هنگام Hot Reload)
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
 
     // --- 1. Setup Scene ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, 0.03);
+    // افزایش تراکم مه برای عمق بیشتر در پس‌زمینه
+    scene.fog = new THREE.FogExp2(0x000000, 0.04);
 
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -50,7 +50,40 @@ const AgentVisual: React.FC = () => {
     cyanLight.position.set(-5, -5, 5);
     scene.add(cyanLight);
 
-    // --- 3. The Core ---
+    // --- 3. Background Elements (New) ---
+    
+    // 3.1 Background Particles
+    const bgParticlesGeometry = new THREE.BufferGeometry();
+    const bgParticleCount = 2000;
+    const bgParticlePositions = new Float32Array(bgParticleCount * 3);
+
+    for (let i = 0; i < bgParticleCount; i++) {
+        // پخش کردن ذرات در یک فضای بزرگتر
+        bgParticlePositions[i * 3] = (Math.random() - 0.5) * 50;
+        bgParticlePositions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+        bgParticlePositions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    bgParticlesGeometry.setAttribute('position', new THREE.BufferAttribute(bgParticlePositions, 3));
+
+    const bgParticlesMaterial = new THREE.PointsMaterial({
+        color: 0x0055ff,
+        size: 0.1,
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending // برای درخشش بیشتر
+    });
+    const bgParticles = new THREE.Points(bgParticlesGeometry, bgParticlesMaterial);
+    scene.add(bgParticles);
+
+    // 3.2 Background Grid (Optional for perspective)
+    const gridHelper = new THREE.GridHelper(60, 60, 0x001f5c, 0x001f5c);
+    gridHelper.position.y = -10;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.2;
+    scene.add(gridHelper);
+
+
+    // --- 4. The Core ---
     const coreGeometry = new THREE.IcosahedronGeometry(1.5, 1);
     const coreMaterial = new THREE.MeshPhysicalMaterial({
       color: 0x001f5c,
@@ -70,7 +103,7 @@ const AgentVisual: React.FC = () => {
     const innerCore = new THREE.Mesh(innerCoreGeo, innerCoreMat);
     scene.add(innerCore);
 
-    // --- 4. The Network ---
+    // --- 5. The Network ---
     const nodesGroup = new THREE.Group();
     scene.add(nodesGroup);
 
@@ -113,7 +146,7 @@ const AgentVisual: React.FC = () => {
     const networkLines = new THREE.LineSegments(linesGeometry, lineMaterial);
     nodesGroup.add(networkLines);
 
-    // --- 5. Rings ---
+    // --- 6. Rings ---
     const ringGeo = new THREE.TorusGeometry(5, 0.05, 16, 100);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.3 });
     const ring1 = new THREE.Mesh(ringGeo, ringMat);
@@ -126,7 +159,7 @@ const AgentVisual: React.FC = () => {
     ring2.scale.set(1.2, 1.2, 1.2);
     scene.add(ring2);
 
-    // --- 6. Post Processing ---
+    // --- 7. Post Processing ---
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0;
@@ -137,27 +170,29 @@ const AgentVisual: React.FC = () => {
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
 
-    // --- 7. Animation ---
+    // --- 8. Animation ---
     let animationId: number;
     let time = 0;
     const animate = () => {
         animationId = requestAnimationFrame(animate);
         time += 0.005;
 
+        // انیمیشن المان‌های مرکزی
         core.rotation.y += 0.005;
         core.rotation.x += 0.002;
-
         nodesGroup.rotation.y -= 0.002;
         nodesGroup.rotation.z += 0.001;
-
         ring1.rotation.x = Math.PI / 2 + Math.sin(time) * 0.2;
         ring1.rotation.y += 0.005;
         ring2.rotation.x = Math.PI / 2 + Math.cos(time) * 0.2;
         ring2.rotation.y -= 0.003;
-
         const pulse = 1 + Math.sin(time * 3) * 0.1;
         innerCore.scale.set(pulse, pulse, pulse);
         coreMaterial.emissiveIntensity = 0.5 + Math.sin(time * 5) * 0.2;
+
+        // انیمیشن پس‌زمینه
+        bgParticles.rotation.y += 0.0005; // چرخش بسیار آرام ذرات پس‌زمینه
+        gridHelper.rotation.y += 0.001; // چرخش آرام شبکه کف
 
         composer.render();
     };
@@ -180,6 +215,11 @@ const AgentVisual: React.FC = () => {
         if (container && renderer.domElement) container.removeChild(renderer.domElement);
         renderer.dispose();
         composer.dispose();
+        // پاکسازی متریال‌ها و ژئومتری‌های جدید
+        bgParticlesGeometry.dispose();
+        bgParticlesMaterial.dispose();
+        gridHelper.geometry.dispose();
+        gridHelper.material.dispose();
     };
   }, []);
 
