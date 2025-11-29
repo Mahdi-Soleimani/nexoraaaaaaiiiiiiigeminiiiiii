@@ -48,10 +48,10 @@ const About: React.FC = () => {
         <div className="grid md:grid-cols-4 gap-8">
           {[
             // آدرس عکس‌ها باید دقیقاً مطابق نام فایل در پوشه public/team باشد
-            { name: "مهندس مهدی سلیمانی", role: "بنیان‌گذار و معمار ارشد سیستم", img: "/team/mahdi.jpg" },
-            { name: "مهندس عرفان تحویلیان", role: "مهندس اتوماسیون", img: "/team/erfan.jpg" },
-            { name: "نرگس میرزائی", role: "طراح تعاملات هوش مصنوعی", img: "/team/narges.jpg" },
-            { name: "مهشید کیانی", role: "متخصص یکپارچه‌سازی", img: "/team/mahshid.jpg" },
+            { name: "مهندس مهدی سلیمانی", role: "بنیان‌گذار و معمار ارشد سیستم", img: "./team/ceo.png" },
+            { name: "مهندس عرفان تحویلیان", role: "مهندس اتوماسیون", img: "./team/erfan.jpg" },
+            { name: "نرگس میرزائی", role: "طراح تعاملات هوش مصنوعی", img: "./team/narges.jpg" },
+            { name: "مهشید کیانی", role: "متخصص یکپارچه‌سازی", img: "./team/mahshid.jpg" },
           ].map((member, i) => (
             <div key={i} className="group relative">
               <div className="relative overflow-hidden rounded-2xl aspect-[3/4] mb-4">
